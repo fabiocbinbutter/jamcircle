@@ -4,6 +4,7 @@ const http=require('http')
 const pRequest=require('request-promise');
 const fs=require('fs');
 const util = require('util');
+const templates = require("dot").process({ path: "./templates"});
 
 //const pGraph = promisify(require('fbgraph'), undefined, true);
 //pGraph.setVersion("2.5");
@@ -11,60 +12,151 @@ const util = require('util');
 const app = express();
 
 const env=process.env.NODE_ENV || 'dev';
+const protocol = "http"
 const host = "dev.tamanin.com"
 const port = process.env.PORT || 3000;
-const fbAuthPath='/connect/facebook';
+const origin=protocol+'://'+host+(port==80||port==443?'':':'+port)
 
 const conf = {
 		fb:{
-				client_id:      '1419234001659548',
-				client_secret:  JSON.parse(fs.readFileSync('secret/fbAppSecret.json')),
-				scope:          'user_events, user_actions.music',
-				redirect_uri:   'http://'+host+':'+port+fbAuthPath
+				apiVersion:"v2.7",
+				clientId:'1419234001659548',
+				clientSecret:JSON.parse(fs.readFileSync('secret/fbAppSecret.json')),
+				scope:'user_events, user_actions.music',
+				redirectUri:origin+"/connect/facebook"
+			},
+		spotify:{
+				clientId:"",
+				clientSecret:"",
+				scope:"user-library-read,user-top-read", //later add playlist-read-private with UI to opt-in playlists
+				redirectUri:origin+"/connect/spotify"
 			}
 	};
 
 
-app.use(express.static(__dirname + '/static'));
+app.get("/",redirectRoot)
+app.get("/connect", ... )
+app.get("/connect/facebook", connectFacebook )
+app.get("/connect/spotify", connectSpotify )
+app.get("/events", ... )
+app.get("/feed", ... )
+app.get("/user/:userId", ... )
+app.get("/event/:eventId", ... )
 
-app.get(fbAuthPath,(req,res)=>fbAuth(req,res))
 
 app.listen(port, function() {
-  console.log("Express server listening on port %d", port);
-});
+		console.log("Express server listening on port %d", port);
+	});
 
-function fbAuth(req, res) {
+
+
+function redirectRoot(req,res){
+		if(!req.session.fb || ! req.session.spotify){res.redirect("/connect"); return;}
+		res.redirect("/feed")
+	});
+
+
+function connectFacebook(req,res){
+		if (req.query.error) {res.send('Facebook access denied');return;}
 		if (!req.query.code) {//Not a redirect from fb, starting the process
-				if (req.query.error) {
-						res.send('Facebook access denied');
-						return Promise.resolve();
-					}else{
-						res.redirect(
-								"https://www.facebook.com/v2.5/dialog/oauth"
-								+"?client_id="+conf.fb.client_id
-								+"&redirect_uri="+conf.fb.redirect_uri
-								+"&scope="+conf.fb.scope
-							)
-						return Promise.resolve();
-					}
+				else{res.redirect(dialogUrl(conf));return;}
 			}else{ //req.query.code is set, i.e. user has been directed here after acceptin on fb.com
-				return (pRequest
-							.get(
-									"https://graph.facebook.com/v2.5/oauth/access_token"
-									+"?client_id="+conf.fb.client_id
-									+"&redirect_uri="+conf.fb.redirect_uri
-									+"&client_secret="+conf.fb.client_secret
-									+"&code="+req.query.code
-							)
+				const pUser=pRequest
+						.get(authUrl(conf,request.query.code)
 						.then(JSON.parse)
-						.then(peek)
-						.then(fb=>{
-								req.session.fbToken=fb.access_token;
-								res.send({connected:{fb:true,spotify:req.session.spotify}});
-							})
-						.catch(peek)
+						.then(property("access_token"))
+						.then(setOnAs(req.session,"fbToken"))
+						.then(getFbUser)
+						.then(setOnAs(req.session,"fb"));
+				pUser.then(fbUser=>res.redirect(req.session.spotify?:"/connect":"/"))
+				pUser.then(getFbUserEvents)
+						.then(storeEvents)
+					;
+			}
+		return;
+
+		function dialogUrl(conf){
+				return ("https://www.facebook.com/"+conf.fb.apiVersion+"/dialog/oauth"
+						+"?client_id="+conf.fb.clientId
+						+"&redirect_uri="+conf.fb.redirectUri
+						+"&scope="+conf.fb.scope
 					);
 			}
+		function authUrl(conf,code){
+				return ("https://graph.facebook.com/"
+						+conf.fb.apiVersion
+						+"/oauth/access_token"
+						+"?client_id="+conf.fb.clientId
+						+"&redirect_uri="+conf.fb.redirectUri
+						+"&client_secret="+conf.fb.clientSecret
+						+"&code="+code
+					)
+			}
+	}
+
+function connectSpotify(req,res){
+		if (req.query.error) {res.send('Spotify access denied');return;}
+		if (!req.query.code) {
+				res.redirect(dialogUrl(conf));return;}
+			}else{ //req.query.code is set, i.e. user has been directed here after acceptin on dialog
+				const pUser=pRequest
+						.get(authUrl(conf.spotify,request.query.code)
+						.then(JSON.parse)
+						.then(property("access_token"))
+						.then(setOnAs(req.session,"sfToken"))
+						.then(getSfUser)
+						.then(setOnAs(req.session,"spotify"));
+				pUser.then(sfUser=>res.redirect(req.session.fb?:"/connect":"/"))
+				pUser.then(sfFbUserMusic)
+						.then(storeEvents)
+					;
+			}
+		return;
+
+		function dialogUrl(conf){
+				return (
+						"https://accounts.spotify.com/authorize/"
+						+ "?client_id="+conf.clientId
+						+ "&response_type=code"
+						+ "&redirect_uri="+conf.redirectUri
+						+ "&scope="conf.scope
+						//TODO: add state for anti XSRF
+					);
+			}
+
+		function authUrl(){
+				//continue here
+
+			}
+
+	}
+
+
+function setOnAs(tgt,prop){
+		return (val=>tgt[prop]=val)
+	}
+function property(prop){
+		return (obj=>obj[prop])
+	}
+
+
+function fbAuth(req, res) {
+
+	}
+
+function
+
+function getFbUser(fbToken){
+		if(!fbToken){throw('Missing FB token');}
+		return pRequest
+				.get(fbGraphUrl+"me?fields=id,name,picture")
+				//events.limit(100){id,name,start_time,end_time,place,rsvp_status}")
+				.then(fb=>
+						req.session.fb={
+								id:fb.id, name:fb.name, picture:fb.picture.data.url
+							}
+					)
+
 	}
 
 function peek(o){

@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+</head>
+<body>
+	<h1 style="text-align:center">Jam Circle</h1>
+
+	{{? it.session.fb}}
+		<img src="{{=it.session.fb.picture}}" />
+		{{=it.session.fb.name}}
+	{{??}}
+		<a href="/connect/facebook">Connect Facebook</a>
+	{{?}}
+
+	{{? it.session.spotify}}
+		{{=it.session.spotify.name}}
+	{{??}}
+		<a href="/connect/spotify">Connect Spotify</a>
+	{{?}}
+
+</body>
+</html>
