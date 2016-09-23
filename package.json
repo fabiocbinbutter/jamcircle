@@ -1,0 +1,26 @@
+{
+  "name": "jamcircle",
+  "version": "0.0.3",
+  "description": "Web app to connect user music and events",
+  "main": "index.js",
+  "dependencies": {
+    "express": "^4.14.0",
+    "express-session": "^1.14.1",
+    "grant-express": "^3.6.4",
+    "morgan": "^1.7.0"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/fabiocbinbutter/jamcircle.git"
+  },
+  "author": "Fabio Beltramini",
+  "license": "GPL-3.0",
+  "bugs": {
+    "url": "https://github.com/fabiocbinbutter/jamcircle/issues"
+  },
+  "homepage": "https://github.com/fabiocbinbutter/jamcircle#readme"
+}
