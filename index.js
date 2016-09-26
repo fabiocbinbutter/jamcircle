@@ -1,39 +1,64 @@
-const fs=require('fs');
-const util = require('util');
-
-const express = require('express')
-const session = require('express-session')
-const logger = require('morgan')
-const Grant = require('grant-express')
-//const templates = require("dot").process({ path: "./templates"});
-//CONTINUE: migrate from request to purest?
-
 const env=process.env.NODE_ENV || 'dev';
+const util = require('util')
 const config=require('./config.js')(env)
 
-var grant = new Grant(config.grant)
-var app = express()
-app.use(logger('dev'))
-app.use(session(config.session))
-app.use(grant)
+const express = require('express')
+	var app = express()
 
-app.get(config.grant.facebook.callback, function (req, res) {
+const logger = require('morgan')
+		app.use(logger(env))
+
+const engine = require('express-dot-engine')
+		app.engine('dot',engine.__express)
+		app.set('views', './views')
+		app.set('view engine', 'dot')
+
+const session = require('express-session')
+		app.use(session(config.session))
+
+const Grant = require('grant-express')
+		app.use(new Grant(config.grant))
+
+
+const request = require('request')
+const promise = require('bluebird')
+const purest = require('purest')({request:request,promise:promise})
+const purestConfig = require('@purest/providers')
+const facebook = purest({provider: 'facebook', config:purestConfig})
+const spotify = purest({provider: 'spotify', config:purestConfig})
+
+app.use(express.static('static'))
+
+app.get(config.grant.facebook.callback, storeReturnPath, function (req, res) {
 		req.session.facebook=req.query;
-		res.end(JSON.stringify(req.query, undefined, 2))
+		facebook
+				.auth(req.session.facebook.access_token)
+				.get('me')
+				.request()
+				.then(remoteRes=>{
+						res.send(JSON.stringify(remoteRes))
+						//res.end("Return to "+(req.session.returnPath||"root"))
+				})
+				.catch((err)=>res.send("Error:"+err))
+
 	})
 
-app.get(config.grant.spotify.callback, function (req, res) {
+app.get(config.grant.spotify.callback, storeReturnPath, function (req, res) {
 		req.session.spotify=req.query;
-		res.end(JSON.stringify(req.query, undefined, 2))
+		res.end("Return to "+(req.session.returnPath||"root"))
 	})
 
 app.get("/dev",(req,res)=>{
 		res.end(JSON.stringify(req.session,undefined,2))
 	})
 
+app.get("/",(req,res)=>res.render('connect',{session:req.session}))
+
 app.listen(3000, function () {
 		console.log('Express server listening on port ' + 3000)
 	})
+
+
 
 /* Upcoming routes
 app.get("/",redirectRoot)
@@ -61,6 +86,13 @@ function getFbUser(fbToken){
 							}
 					)
 
+	}
+
+function storeReturnPath(req,res,next){
+		const ref=req.get("referer");
+		//TODO :validate trusted URL
+		req.session.returnPath=ref;
+		next();
 	}
 
 function peek(o){

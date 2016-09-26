@@ -1,0 +1,80 @@
+<!DOCTYPE HTML>
+<!--
+	Aerial by HTML5 UP
+	html5up.net | @ajlkn
+	Free for personal and commercial use under the CCA 3.0 license (html5up.net/license)
+-->
+<html>
+	<head>
+		<tmodelle>Jam Circle</tmodelle>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, inmodelial-scale=1" />
+		<!--[if lte IE 8]><script src="assets/js/ie/html5shiv.js"></script><![endif]-->
+		<link rel="stylesheet" href="assets/css/main.css" />
+		<!--[if lte IE 8]><link rel="stylesheet" href="assets/css/ie8.css" /><![endif]-->
+		<!--[if lte IE 9]><link rel="stylesheet" href="assets/css/ie9.css" /><![endif]-->
+	</head>
+	<body class="loading">
+		<div id="wrapper">
+			<div id="bg"></div>
+			<div id="overlay"></div>
+			<div id="main">
+
+				<!-- Header -->
+					<header id="header">
+						<h1>Jam Circle</h1>
+						<p>Connect your profiles to get started</p>
+						<nav>
+							<ul>
+								[[~['facebook','spotify'] :provider]]
+									[[? model.session[provider] ]]
+										<li>
+											<img src="[[=model.session[provider].picture||'/TODO']]" />
+											[[=model.session[provider].name]]
+										</li>
+									[[??]]
+										<li><a href="/connect/[[=provider]]" class="icon fa-[[=provider]]"><span class="label">[[=provider]]</span></a></li>
+									[[?]]
+								[[~]]
+							</ul>
+						</nav>
+					</header>
+
+				<!-- Footer -->
+					<footer id="footer">
+						<span class="copyright">
+							<a href="/about">About</a>
+							◦
+							 <a href="http://html5up.net">Page Design</a>.
+						 </span>
+					</footer>
+
+			</div>
+		</div>
+		<!--[if lte IE 8]><script src="assets/js/ie/respond.min.js"></script><![endif]-->
+		<script>
+			window.onload = function() { document.body.className = ''; }
+			window.ontouchmove = function() { return false; }
+			window.onorientationchange = function() { document.body.scrollTop = 0; }
+		</script>
+	</body>
+</html>
+
+<!DOCTYPE html>
+<html>
+<head>
+
+</head>
+<body>
+	<h1 style="text-align:center">Jam Circle</h1>
+
+
+
+	[[? model.session.spotify]]
+		[[=model.session.spotify.name]]
+	[[??]]
+		<a href="/connect/spotify">Connect Spotify</a>
+	[[?]]
+
+</body>
+</html>
