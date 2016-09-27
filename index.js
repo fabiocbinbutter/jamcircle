@@ -19,6 +19,7 @@ const session = require('express-session')
 const Grant = require('grant-express')
 		app.use(new Grant(config.grant))
 
+const db=require("./model.js")(config.database)
 
 const request = require('request')
 const promise = require('bluebird')
@@ -31,16 +32,25 @@ app.use(express.static('static'))
 
 app.get(config.grant.facebook.callback, storeReturnPath, function (req, res) {
 		req.session.facebook=req.query;
-		facebook
-				.auth(req.session.facebook.access_token)
-				.get('me')
-				.request()
-				.then(remoteRes=>{
-						res.send(JSON.stringify(remoteRes))
-						//res.end("Return to "+(req.session.returnPath||"root"))
+		const token=req.session.facebook.access_token
+		const fbUser=facebook.auth(token).get('me').request();
+		fbUser.then(fbUser=>{
+					/*db.fbAccounts.findOrCreate({
+							where:{id:req.}
+							default:{id:,name:,pictureUrl:}
+						})
+						.then(()=>)*/
+					res.send(JSON.stringify(fbUser))
+					//res.end("Return to "+(req.session.returnPath||"root"))
 				})
-				.catch((err)=>res.send("Error:"+err))
-
+				.catch((err)=>res.send("Error:"+err));
+		fbReq.then(remoteRes=>facebook
+				.auth(token)
+				.get('me/events')
+				//.qs({type:...)
+				.request()
+			)
+			.then()
 	})
 
 app.get(config.grant.spotify.callback, storeReturnPath, function (req, res) {

@@ -5,8 +5,13 @@ module.exports=function(env){
 		console.log("Using "+env+" config");
 
 		return {
+				"database":{
+						connectionString:{
+								dev:"mysql://root:"+secret('mysqlDevRootPw')+"@localhost:3306/jamcircle"
+							}[env]
+					},
 				"session":{
-						secret: JSON.parse(fs.readFileSync('secret/cookieSecret.json')),
+						secret: secret('cookieSecret'),
 						resave: false,
 						saveUninitialized: true,
 						secure:{dev:false}[env]||true
@@ -20,16 +25,20 @@ module.exports=function(env){
 							},
 						"facebook": {
 								"key": "1419234001659548",
-								"secret": JSON.parse(fs.readFileSync('secret/fbAppSecret.json')),
+								"secret": secret('fbAppSecret'),
 								"scope": ["user_events", "user_actions.music"],
 								"callback": "/connected/facebook"
 							},
 						"spotify": {
 								"key": "22c2017d1a1c4b5593947d39e82865d1",
-								"secret": JSON.parse(fs.readFileSync('secret/sfAppSecret.json')),
+								"secret": secret('sfAppSecret'),
 								"scope": ["user-top-read","user-library-read"],
 								"callback": "/connected/spotify"
 							}
 					}
 			};
+
+		function secret(name){
+				return JSON.parse(fs.readFileSync('secret/'+name+'.json'))
+			}
 	}
