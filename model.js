@@ -1,18 +1,21 @@
 module.exports=function(config){
 		const Sequelize = require('sequelize')
-		const sequelize = Sequelize(config.connectionString)
-
+		var sequelize = new Sequelize(config.connectionString)
+		/*var sequelize = Sequelize(config.database,config.username,config.password,{
+				host: config.host,
+				dialect:config.dialect
+			})*/
 		const model = {
-				users:sequelize.deifne("users",{
+				users:sequelize.define("users",{
 						name: Sequelize.STRING
 					}),
-				fbUsers:sequelize.define("fbAccounts",{
-						id: Sequelize.STRING,
+				fbAccounts:sequelize.define("fbAccounts",{
+						accountId: Sequelize.STRING,
 						name: Sequelize.STRING,
 						pictureUrl: Sequelize.STRING
 					}),
-				sfUsers:sequelize.define("sfAccounts",{
-						id: Sequelize.STRING,
+				sfAccounts:sequelize.define("sfAccounts",{
+						accountId: Sequelize.STRING,
 						name: Sequelize.STRING,
 						pictureUrl: Sequelize.STRING
 					}),
@@ -33,17 +36,17 @@ module.exports=function(config){
 							plays: Sequelize.STRING,
 							firstDate: Sequelize.DATE,
 							lastDate: Sequelize.DATE,
-							rating: Sequlize.FLOAT
+							rating: Sequelize.FLOAT
 						})
 			};
-		model.users.hasOne("fbAccounts")
-		model.users.hasOne("sfAccounts")
+		model.users.hasOne(model.fbAccounts)
+		model.users.hasOne(model.sfAccounts)
 
-		model.events.belongsToMany("fbAccounts",{through:"rsvps"})
-		model.fbAccounts.belongsToMany("events",{through:"rsvps"})
+		model.events.belongsToMany(model.fbAccounts,{through:"rsvps"})
+		model.fbAccounts.belongsToMany(model.events,{through:"rsvps"})
 
-		model.songs.belongsToMany("sfAccounts",{through:"usersXSongs"})
-		model.sfAccounts.belongsToMany("songs",{through:"usersXSongs"})
+		model.songs.belongsToMany(model.sfAccounts,{through:"usersXSongs"})
+		model.sfAccounts.belongsToMany(model.songs,{through:"usersXSongs"})
 
-		
+		return model;
 	}

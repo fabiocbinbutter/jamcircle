@@ -31,26 +31,30 @@ const spotify = purest({provider: 'spotify', config:purestConfig})
 app.use(express.static('static'))
 
 app.get(config.grant.facebook.callback, storeReturnPath, function (req, res) {
-		req.session.facebook=req.query;
-		const token=req.session.facebook.access_token
-		const fbUser=facebook.auth(token).get('me').request();
-		fbUser.then(fbUser=>{
-					/*db.fbAccounts.findOrCreate({
-							where:{id:req.}
-							default:{id:,name:,pictureUrl:}
-						})
-						.then(()=>)*/
-					res.send(JSON.stringify(fbUser))
-					//res.end("Return to "+(req.session.returnPath||"root"))
-				})
-				.catch((err)=>res.send("Error:"+err));
-		fbReq.then(remoteRes=>facebook
-				.auth(token)
-				.get('me/events')
-				//.qs({type:...)
-				.request()
-			)
-			.then()
+		req.session.tokens.facebook=req.query;
+		const token=req.session.tokens.facebook.access_token
+		const fbUser=facebook.auth(token).get('me').qs({fields:'id,name,picture'}).request();
+		fbUser.then(fbRes=>fbRes[0].body)
+				.then(fbAccount=>
+						db.fbAccounts.findOrCreate({
+								where:{accountId:fbAccount.id},
+								default:{
+										accountId:fbAccount.id,
+										name:fbAccount.name,
+										pictureUrl:fbAccount.picture
+									}
+							})
+					)
+				.then(x=>res.send(JSON.stringify(x)))
+				.catch(err=>res.send("Error:"+err));
+		//res.end("Return to "+(req.session.returnPath||"root"))
+		/*TODO: start loading events
+		fbUser.then(remoteRes=>facebook
+						.auth(token)
+						.get('me/events')
+						//.qs({type:...)
+						.request()
+			)*/
 	})
 
 app.get(config.grant.spotify.callback, storeReturnPath, function (req, res) {
@@ -64,9 +68,12 @@ app.get("/dev",(req,res)=>{
 
 app.get("/",(req,res)=>res.render('connect',{session:req.session}))
 
-app.listen(3000, function () {
-		console.log('Express server listening on port ' + 3000)
-	})
+Promise.all(Object.keys(db).map(k=>db[k].sync()))
+		.then(()=>
+				app.listen(3000, function () {
+						console.log('Express server listening on port ' + 3000)
+					})
+			)
 
 
 

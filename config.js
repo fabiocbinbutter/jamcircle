@@ -6,7 +6,13 @@ module.exports=function(env){
 
 		return {
 				"database":{
-						connectionString:{
+						/*"dialect":"mysql",
+						"username":{dev:"root"}[env],
+						"password":secret('mysqlDevRootPw'),
+						"host":{dev:"localhost"}[env],
+						"database":"jamcircle",
+						"port":"3306"*/
+						"connectionString":{
 								dev:"mysql://root:"+secret('mysqlDevRootPw')+"@localhost:3306/jamcircle"
 							}[env]
 					},
